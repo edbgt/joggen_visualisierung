@@ -11,9 +11,6 @@ class Run:
         self.average_speed = self.distance / self.duration
         self.coordinates = new_coordinates
 
-    def paint(self):
-        pass
-
     def print(self):
         print('Run from {} at {}:\t{} kms in {} mins with an average speed of {} m/s'.format(self.date, self.time,
                 np.round(self.distance / 1000, 2), np.round(self.duration / 60, 2), np.round(self.average_speed, 2)))
