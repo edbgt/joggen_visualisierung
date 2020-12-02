@@ -3,17 +3,21 @@ import tkinter.ttk as ttk
 import os
 import gpxpy
 import matplotlib.pyplot as plt
+import tilemapbase
 from matplotlib.dates import DateFormatter, YearLocator, MonthLocator
 import datetime as dt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import pickle
 from tkinter import filedialog
 
+from Map import Map
 from Run import Run
 
 
 class Main:
     def __init__(self):
+        self.root = tk.Tk()
+
         # units
         self.time_units = ['Seconds', 'Minutes', 'Hours']
         self.distance_units = ['Meters', 'Kilometers']
@@ -25,12 +29,17 @@ class Main:
             self.chosen_speed_unit = 'Meters per Second'
             self.runs_directory = 'C:/Users/etienne/OneDrive/gpx_data'
 
+        self.time_combobox = ttk.Combobox
+        self.distance_combobox = ttk.Combobox
+        self.speed_combobox = ttk.Combobox
+        self.selection_combobox = ttk.Combobox
+
         self.runs = list()
         self.read_gpx_files(self.runs_directory)
+        self.chosen_run = self.runs[-1]
         self.build_gui()
 
     def build_gui(self):
-        self.root = tk.Tk()
         self.root.title('MUSS MIR NOCH 1 NAMEN ÜBERLEGEN')
         self.root.geometry('1000x700')
 
@@ -129,6 +138,37 @@ class Main:
         # save button
         save_button = ttk.Button(settings_tab, text='Save', command=self.save_to_file, width=widget_width)
         save_button.pack(padx=pad_in, pady=pad_in, anchor='e')
+
+        # map tab
+        # selection frame
+        selection_frame = ttk.Labelframe(map_tab, text='Select run to display on map')
+        selection_frame.pack(expand=0, fill='x')
+        selection_frame.grid_columnconfigure(0, weight=1)
+
+        # selection combobox
+        self.selection_combobox = ttk.Combobox(selection_frame, textvariable=self.chosen_run, width=widget_width, state='readonly')
+        self.selection_combobox['values'] = [run.date for run in self.runs]
+        self.selection_combobox.current(self.runs.index(self.chosen_run))
+        self.selection_combobox.grid(column=0, row=0, sticky='w', padx=pad_in, pady=pad_in)
+
+        # generate button
+        generate_button = ttk.Button(selection_frame, text='Generate', command=self.generate_map, width=widget_width)
+        generate_button.grid(column=1, row=0, sticky='e', padx=pad_in, pady=pad_in)
+
+        # map frame
+        self.map_frame = ttk.Frame(map_tab)
+        self.map_frame.pack(expand=1, fill='both')
+
+        # map canvas
+        # todo
+        self.map_canvas = FigureCanvasTkAgg(, self.map_frame)
+        self.map_canvas.get_tk_widget().pack(side='left', fill='both')
+
+    def generate_map(self):
+        print('generating map')
+        # todo
+        map = Map(self.runs[self.selection_combobox.current()])
+        map.get_plot()
 
     def read_gpx_files(self, runs_directory):
         filenames = os.listdir(runs_directory)
