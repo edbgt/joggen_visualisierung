@@ -29,11 +29,14 @@ class Main:
             self.chosen_speed_unit = 'Meters per Second'
             self.runs_directory = 'C:/Users/etienne/OneDrive/gpx_data'
 
+        # gui elements init
         self.time_combobox = ttk.Combobox
         self.distance_combobox = ttk.Combobox
         self.speed_combobox = ttk.Combobox
         self.selection_combobox = ttk.Combobox
+        self.map_frame = ttk.Frame
 
+        self.rename_gpx_files(self.runs_directory)
         self.runs = list()
         self.read_gpx_files(self.runs_directory)
         self.chosen_run = self.runs[-1]
@@ -157,18 +160,30 @@ class Main:
 
         # map frame
         self.map_frame = ttk.Frame(map_tab)
-        self.map_frame.pack(expand=1, fill='both')
+        self.map_frame.pack(expand=0, fill='both')
 
         # map canvas
-        # todo
-        self.map_canvas = FigureCanvasTkAgg(, self.map_frame)
-        self.map_canvas.get_tk_widget().pack(side='left', fill='both')
+        # added in method generate_map()
 
     def generate_map(self):
         print('generating map')
-        # todo
         map = Map(self.runs[self.selection_combobox.current()])
-        map.get_plot()
+        self.map_canvas = FigureCanvasTkAgg(map.get_plot(), self.map_frame)
+        self.map_canvas.get_tk_widget().pack(side='left', fill='both')
+
+    def rename_gpx_files(self, runs_directory):
+        filenames = os.listdir(runs_directory)
+        print(filenames)
+        for file_to_eventually_rename in filenames:
+            if file_to_eventually_rename[2] == ".":
+                os.rename(runs_directory+ '/' + file_to_eventually_rename,
+                          runs_directory + '/' + file_to_eventually_rename[6:10]
+                          + "_"
+                          + file_to_eventually_rename[3:5]
+                          + "_"
+                          + file_to_eventually_rename[0:2]
+                          + file_to_eventually_rename[10:19]
+                          + ".gpx")
 
     def read_gpx_files(self, runs_directory):
         filenames = os.listdir(runs_directory)
