@@ -22,12 +22,16 @@ class Main:
         self.time_units = ['Seconds', 'Minutes', 'Hours']
         self.distance_units = ['Meters', 'Kilometers']
         self.speed_units = ['Meters per Second', 'Kilometers per Hour']
+        self.time_factor, self.distance_factor, self.speed_factor = 0, 0, 0.
+        self.time_abreviation, self.distance_abreviation, self.speed_abreviation = '', '', ''
 
         if not self.load_from_file():
             self.chosen_time_unit = 'Seconds'
             self.chosen_distance_unit = 'Meters'
             self.chosen_speed_unit = 'Meters per Second'
             self.runs_directory = 'C:/Users/etienne/OneDrive/gpx_data'
+
+        self.set_units()
 
         # gui elements init
         self.time_combobox = ttk.Combobox
@@ -76,46 +80,46 @@ class Main:
         # overview tab
         table_canvas = tk.Canvas(overview_tab)
         table_canvas.pack(expand=1, fill='both')
-
         scrollbar = tk.Scrollbar(overview_tab, orient='vertical', command=table_canvas.yview)
-
         scrollable_table = tk.Frame(table_canvas)
         scrollable_table.bind('<Configure>', lambda e: table_canvas.configure(scrollregion=table_canvas.bbox('all')))
-
         table_canvas.create_window((0, 0), window=scrollable_table, anchor='nw')
         table_canvas.configure(yscrollcommand=scrollbar.set)
-
         table_canvas.pack(expand=1, fill='both', side='left')
         scrollbar.pack(side='right', fill='y')
 
         # row 0
-
-        for col, name in enumerate(['Date', 'Time', 'Distance', 'Duration', 'Speed']):
-            tk.Label(scrollable_table, text=name, height=cell_height, width=cell_width, relief='groove').grid(column=col, row=0, padx=pad_in, pady=pad_in)
+        for col, name in enumerate(['Date', 'Time', '', 'Distance [' + self.distance_abreviation + ']', 'Duration [' + self.time_abreviation + ']', 'Speed [' + self.speed_abreviation + ']']):
+            tk.Label(scrollable_table, text=name, height=cell_height, width=cell_width, relief='groove',
+                     font='Helvetica 9 bold').grid(column=col, row=0)
+            if col == 2:
+                tk.Label(scrollable_table, text=name, height=cell_height, width=cell_width + 8, relief='groove') \
+                    .grid(column=col, row=0)
+                continue
         # data
         for idx, run in enumerate(self.runs):
-            tk.Label(scrollable_table, text=run.date, height=cell_height, width=cell_width, relief='groove').grid(column=0, row=idx + 1, padx=pad_in, pady=pad_in)
-            tk.Label(scrollable_table, text=run.time, height=cell_height, width=cell_width, relief='groove').grid(column=1, row=idx + 1, padx=pad_in, pady=pad_in)
-            tk.Label(scrollable_table, text=run.distance, height=cell_height, width=cell_width, relief='groove').grid(column=2, row=idx + 1, padx=pad_in, pady=pad_in)
-            tk.Label(scrollable_table, text=run.duration, height=cell_height, width=cell_width, relief='groove').grid(column=3, row=idx + 1, padx=pad_in, pady=pad_in)
-            tk.Label(scrollable_table, text=run.average_speed, height=cell_height, width=cell_width, relief='groove').grid(column=4, row=idx + 1, padx=pad_in, pady=pad_in)
+            tk.Label(scrollable_table, text=run.date, height=cell_height, width=cell_width, relief='groove').grid(column=0, row=idx + 1)
+            tk.Label(scrollable_table, text=run.time[0:5], height=cell_height, width=cell_width, relief='groove').grid(column=1, row=idx + 1)
+            tk.Label(scrollable_table, text='', height=cell_height, width=cell_width + 8, relief='groove').grid(column=2, row=idx + 1)
+            tk.Label(scrollable_table, text=round(run.distance / self.distance_factor, 2), height=cell_height, width=cell_width, relief='groove').grid(column=3, row=idx + 1)
+            tk.Label(scrollable_table, text=round(run.duration / self.time_factor, 2), height=cell_height, width=cell_width, relief='groove').grid(column=4, row=idx + 1)
+            tk.Label(scrollable_table, text=round(run.average_speed * self.speed_factor, 2), height=cell_height, width=cell_width, relief='groove').grid(column=5, row=idx + 1)
 
+        scrollable_table.columnconfigure(2, weight=1)
 
         # progress tab
-        # duration frame
-        duration_frame = ttk.Labelframe(progress_tab, text='Duration')
-        duration_frame.pack(expand=1, fill='both')
-        duration_canvas = FigureCanvasTkAgg(self.plot_progress('duration'), duration_frame)
-        duration_canvas.get_tk_widget().pack(side='left', fill='both')
-
         # distance frame
-        distance_frame = ttk.Labelframe(progress_tab, text='Distance')
+        distance_frame = ttk.Labelframe(progress_tab, text='Distance [' + self.distance_abreviation + ']')
         distance_frame.pack(expand=1, fill='both')
         distance_canvas = FigureCanvasTkAgg(self.plot_progress('distance'), distance_frame)
         distance_canvas.get_tk_widget().pack(side='left', fill='both')
-
+        # duration frame
+        duration_frame = ttk.Labelframe(progress_tab, text='Duration [' + self.time_abreviation + ']')
+        duration_frame.pack(expand=1, fill='both')
+        duration_canvas = FigureCanvasTkAgg(self.plot_progress('duration'), duration_frame)
+        duration_canvas.get_tk_widget().pack(side='left', fill='both')
         # speed frame
-        speed_frame = ttk.Labelframe(progress_tab, text='Average Speed')
+        speed_frame = ttk.Labelframe(progress_tab, text='Average Speed [' + self.speed_abreviation + ']')
         speed_frame.pack(expand=1, fill='both')
         speed_canvas = FigureCanvasTkAgg(self.plot_progress('speed'), speed_frame)
         speed_canvas.get_tk_widget().pack(side='left', fill='both')
@@ -231,41 +235,49 @@ class Main:
 
             self.runs.append(Run(date, time, distance, duration, coordinates))
 
+    def set_units(self):
+        if self.chosen_time_unit == 'Seconds':
+            self.time_factor = 1
+            self.time_abreviation = 's'
+        elif self.chosen_time_unit == 'Minutes':
+            self.time_factor = 60
+            self.time_abreviation = 'min'
+        elif self.chosen_time_unit == 'Hours':
+            self.time_factor = 3600
+            self.time_abreviation = 'h'
+        else:
+            raise RuntimeError
+
+        if self.chosen_distance_unit == 'Meters':
+            self.distance_factor = 1
+            self.distance_abreviation = 'm'
+        elif self.chosen_distance_unit == 'Kilometers':
+            self.distance_factor = 1000
+            self.distance_abreviation = 'km'
+        else:
+            raise RuntimeError
+
+        if self.chosen_speed_unit == 'Meters per Second':
+            self.speed_factor = 1
+            self.speed_abreviation = 'm/s'
+        elif self.chosen_speed_unit == 'Kilometers per Hour':
+            self.speed_factor = 3.6
+            self.speed_abreviation = 'km/h'
+        else:
+            raise RuntimeError
+
     def plot_progress(self, data_flag):
         fig = plt.figure(figsize=(10, 1))
 
         dates = [run.date for run in self.runs]
         x = [dt.datetime.strptime(d, '%d.%m.%Y').date() for d in dates]
 
-        if self.chosen_time_unit == 'Seconds':
-            time_factor = 1
-        elif self.chosen_time_unit == 'Minutes':
-            time_factor = 60
-        elif self.chosen_time_unit == 'Hours':
-            time_factor = 3600
-        else:
-            raise RuntimeError
-
-        if self.chosen_distance_unit == 'Meters':
-            distance_factor = 1
-        elif self.chosen_distance_unit == 'Kilometers':
-            distance_factor = 1000
-        else:
-            raise RuntimeError
-
-        if self.chosen_speed_unit == 'Meters per Second':
-            speed_factor = 1
-        elif self.chosen_speed_unit == 'Kilometers per Hour':
-            speed_factor = 3.6
-        else:
-            raise RuntimeError
-
         if data_flag == 'distance':
-            y = [run.distance / distance_factor for run in self.runs]
+            y = [run.distance / self.distance_factor for run in self.runs]
         elif data_flag == 'duration':
-            y = [run.duration / time_factor for run in self.runs]
+            y = [run.duration / self.time_factor for run in self.runs]
         elif data_flag == 'speed':
-            y = [run.average_speed * speed_factor for run in self.runs]
+            y = [run.average_speed * self.speed_factor for run in self.runs]
         else:
             raise RuntimeError
 
