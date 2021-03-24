@@ -49,6 +49,7 @@ class Main:
         # dimensions
         widget_width = 20
         pad_in = 5
+        cell_height, cell_width = 1, 21
 
         # main content frame
         main_content = ttk.Frame(self.root)
@@ -71,6 +72,34 @@ class Main:
         tab_control.add(settings_tab, text='Settings')
 
         tab_control.pack(expand=1, fill='both', side='left')
+
+        # overview tab
+        table_canvas = tk.Canvas(overview_tab)
+        table_canvas.pack(expand=1, fill='both')
+
+        scrollbar = tk.Scrollbar(overview_tab, orient='vertical', command=table_canvas.yview)
+
+        scrollable_table = tk.Frame(table_canvas)
+        scrollable_table.bind('<Configure>', lambda e: table_canvas.configure(scrollregion=table_canvas.bbox('all')))
+
+        table_canvas.create_window((0, 0), window=scrollable_table, anchor='nw')
+        table_canvas.configure(yscrollcommand=scrollbar.set)
+
+        table_canvas.pack(expand=1, fill='both', side='left')
+        scrollbar.pack(side='right', fill='y')
+
+        # row 0
+
+        for col, name in enumerate(['Date', 'Time', 'Distance', 'Duration', 'Speed']):
+            tk.Label(scrollable_table, text=name, height=cell_height, width=cell_width, relief='groove').grid(column=col, row=0, padx=pad_in, pady=pad_in)
+        # data
+        for idx, run in enumerate(self.runs):
+            tk.Label(scrollable_table, text=run.date, height=cell_height, width=cell_width, relief='groove').grid(column=0, row=idx + 1, padx=pad_in, pady=pad_in)
+            tk.Label(scrollable_table, text=run.time, height=cell_height, width=cell_width, relief='groove').grid(column=1, row=idx + 1, padx=pad_in, pady=pad_in)
+            tk.Label(scrollable_table, text=run.distance, height=cell_height, width=cell_width, relief='groove').grid(column=2, row=idx + 1, padx=pad_in, pady=pad_in)
+            tk.Label(scrollable_table, text=run.duration, height=cell_height, width=cell_width, relief='groove').grid(column=3, row=idx + 1, padx=pad_in, pady=pad_in)
+            tk.Label(scrollable_table, text=run.average_speed, height=cell_height, width=cell_width, relief='groove').grid(column=4, row=idx + 1, padx=pad_in, pady=pad_in)
+
 
         # progress tab
         # duration frame
@@ -173,7 +202,7 @@ class Main:
 
     def rename_gpx_files(self, runs_directory):
         filenames = os.listdir(runs_directory)
-        print(filenames)
+
         for file_to_eventually_rename in filenames:
             if file_to_eventually_rename[2] == ".":
                 os.rename(runs_directory+ '/' + file_to_eventually_rename,
